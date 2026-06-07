@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Job - Job Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="navbar">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/jobs">Jobs</a>
+    <a href="/add-job">Add Job</a>
+    <a href="#" onclick="logout()">Logout</a>
+</div>
+
+<div class="form-container">
+    <h1>Add Job Application</h1>
+
+    <p id="message"></p>
+
+    <form id="addJobForm">
+        <label>Company Name</label>
+        <input type="text" id="company_name" placeholder="Example: TCS">
+
+        <label>Job Role</label>
+        <input type="text" id="job_role" placeholder="Example: Python Developer">
+
+        <label>Status</label>
+        <select id="status">
+            <option value="Applied">Applied</option>
+            <option value="Interview">Interview</option>
+            <option value="Selected">Selected</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Pending">Pending</option>
+        </select>
+
+        <label>Applied Date</label>
+        <input type="date" id="applied_date">
+
+        <label>Location</label>
+        <input type="text" id="location" placeholder="Example: Pune">
+
+        <label>Job Type</label>
+        <select id="job_type">
+            <option value="">Select Job Type</option>
+            <option value="Full-time">Full-time</option>
+            <option value="Part-time">Part-time</option>
+            <option value="Internship">Internship</option>
+            <option value="Remote">Remote</option>
+            <option value="Contract">Contract</option>
+        </select>
+
+        <label>Notes</label>
+        <textarea id="notes" placeholder="Example: Applied from LinkedIn"></textarea>
+
+        <button class="btn btn-success" type="submit">Save Job</button>
+        <a class="btn btn-secondary" href="/jobs">Back</a>
+    </form>
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+
+if (!token) {
+    window.location.href = "/login";
+}
+
+document.getElementById("addJobForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
+
+    const data = {
+        company_name: document.getElementById("company_name").value,
+        job_role: document.getElementById("job_role").value,
+        status: document.getElementById("status").value,
+        applied_date: document.getElementById("applied_date").value,
+        location: document.getElementById("location").value,
+        job_type: document.getElementById("job_type").value,
+        notes: document.getElementById("notes").value
+    };
+
+    const response = await fetch("/api/jobs", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(data)
+    });
+
+    const result = await response.json();
+    const message = document.getElementById("message");
+
+    if (result.success) {
+        message.className = "message success";
+        message.innerText = result.message;
+
+        setTimeout(() => {
+            window.location.href = "/jobs";
+        }, 1000);
+    } else {
+        message.className = "message error";
+        message.innerText = result.message;
+    }
+});
+
+function logout() {
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+}
+</script>
+
+</body>
+</html>

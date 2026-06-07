@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jobs - Job Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="navbar">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/jobs">Jobs</a>
+    <a href="/add-job">Add Job</a>
+    <a href="#" onclick="logout()">Logout</a>
+</div>
+
+<div class="container">
+    <h1>My Job Applications</h1>
+
+    <a class="btn btn-success" href="/add-job">Add New Job</a>
+
+    <p id="message"></p>
+
+    <!-- Search / Filter Section -->
+    <div class="search-box">
+        <input type="text" id="search" placeholder="Search company or role">
+
+        <select id="status">
+            <option value="">All Status</option>
+            <option value="Applied">Applied</option>
+            <option value="Interview">Interview</option>
+            <option value="Selected">Selected</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Pending">Pending</option>
+        </select>
+
+        <select id="job_type">
+            <option value="">All Job Types</option>
+            <option value="Full-time">Full-time</option>
+            <option value="Part-time">Part-time</option>
+            <option value="Internship">Internship</option>
+            <option value="Remote">Remote</option>
+            <option value="Hybrid">Hybrid</option>
+            <option value="Contract">Contract</option>
+        </select>
+
+        <input type="text" id="location" placeholder="Location">
+
+        <button class="btn" onclick="searchJobs()">Search</button>
+        <button class="btn btn-secondary" onclick="clearSearch()">Clear</button>
+    </div>
+
+    <br>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Company</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Applied Date</th>
+                <th>Location</th>
+                <th>Job Type</th>
+                <th>Notes</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+
+        <tbody id="jobsTable"></tbody>
+    </table>
+
+    <br>
+
+    <div id="paginationBox">
+        <button class="btn btn-secondary" onclick="prevPage()">Previous</button>
+        <span id="pageInfo"></span>
+        <button class="btn btn-secondary" onclick="nextPage()">Next</button>
+    </div>
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+
+let currentPage = 1;
+let totalPages = 1;
+let limit = 5;
+
+if (!token) {
+    window.location.href = "/login";
+}
+
+async function loadJobs() {
+    const response = await fetch(`/api/jobs?page=${currentPage}&limit=${limit}`, {
+        method: "GET",
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+        alert(result.message);
+        return;
+    }
+
+    const table = document.getElementById("jobsTable");
+    table.innerHTML = "";
+
+    if (result.jobs.length === 0) {
+        table.innerHTML = `
+            <tr>
+                <td colspan="9">No jobs found</td>
+            </tr>
+        `;
+    }
+
+    result.jobs.forEach(job => {
+        const row = `
+            <tr>
+                <td>${job.id}</td>
+                <td>${job.company_name}</td>
+                <td>${job.job_role}</td>
+                <td>${job.status}</td>
+                <td>${job.applied_date}</td>
+                <td>${job.location || ""}</td>
+                <td>${job.job_type || ""}</td>
+                <td>${job.notes || ""}</td>
+                <td>
+                    <a class="btn" href="/edit-job/${job.id}">Edit</a>
+                    <button class="btn btn-danger" onclick="deleteJob(${job.id})">Delete</button>
+                </td>
+            </tr>
+        `;
+
+        table.innerHTML += row;
+    });
+
+    totalPages = result.pagination.total_pages;
+
+    document.getElementById("pageInfo").innerText =
+        `Page ${result.pagination.current_page} of ${totalPages}`;
+
+    document.getElementById("paginationBox").style.display = "block";
+}
+
+async function deleteJob(id) {
+    if (!confirm("Are you sure you want to delete this job?")) {
+        return;
+    }
+
+    const response = await fetch(`/api/jobs/${id}`, {
+        method: "DELETE",
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    const result = await response.json();
+
+    const message = document.getElementById("message");
+
+    if (result.success) {
+        message.className = "message success";
+        message.innerText = result.message;
+        loadJobs();
+    } else {
+        message.className = "message error";
+        message.innerText = result.message;
+    }
+}
+
+function nextPage() {
+    if (currentPage < totalPages) {
+        currentPage++;
+        loadJobs();
+    }
+}
+
+function prevPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        loadJobs();
+    }
+}
+
+async function searchJobs() {
+    const search = document.getElementById("search").value;
+    const status = document.getElementById("status").value;
+    const jobType = document.getElementById("job_type").value;
+    const location = document.getElementById("location").value;
+
+    const url = `/api/jobs/search?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&job_type=${encodeURIComponent(jobType)}&location=${encodeURIComponent(location)}`;
+
+    const response = await fetch(url, {
+        method: "GET",
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    const result = await response.json();
+
+    if (!result.success) {
+        alert(result.message);
+        return;
+    }
+
+    const table = document.getElementById("jobsTable");
+    table.innerHTML = "";
+
+    if (result.jobs.length === 0) {
+        table.innerHTML = `
+            <tr>
+                <td colspan="9">No jobs found</td>
+            </tr>
+        `;
+    }
+
+    result.jobs.forEach(job => {
+        const row = `
+            <tr>
+                <td>${job.id}</td>
+                <td>${job.company_name}</td>
+                <td>${job.job_role}</td>
+                <td>${job.status}</td>
+                <td>${job.applied_date}</td>
+                <td>${job.location || ""}</td>
+                <td>${job.job_type || ""}</td>
+                <td>${job.notes || ""}</td>
+                <td>
+                    <a class="btn" href="/edit-job/${job.id}">Edit</a>
+                    <button class="btn btn-danger" onclick="deleteJob(${job.id})">Delete</button>
+                </td>
+            </tr>
+        `;
+
+        table.innerHTML += row;
+    });
+
+    document.getElementById("pageInfo").innerText =
+        `Search result: ${result.total_jobs} jobs found`;
+
+    document.getElementById("paginationBox").style.display = "none";
+}
+
+function clearSearch() {
+    document.getElementById("search").value = "";
+    document.getElementById("status").value = "";
+    document.getElementById("job_type").value = "";
+    document.getElementById("location").value = "";
+
+    currentPage = 1;
+    loadJobs();
+}
+
+function logout() {
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+}
+
+loadJobs();
+</script>
+
+</body>
+</html>

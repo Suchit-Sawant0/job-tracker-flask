@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard - Job Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="navbar">
+    <a href="/dashboard">Dashboard</a>
+    <a href="/jobs">Jobs</a>
+    <a href="/add-job">Add Job</a>
+    <a href="#" onclick="logout()">Logout</a>
+</div>
+
+<div class="container">
+    <h1>Dashboard</h1>
+    <p>Welcome to Job Application Tracker.</p>
+
+    <div class="card-box">
+        <div class="card">
+            <h2>Total Jobs</h2>
+            <p id="total_jobs">0</p>
+        </div>
+
+        <div class="card">
+            <h2>Applied</h2>
+            <p id="applied">0</p>
+        </div>
+
+        <div class="card">
+            <h2>Interview</h2>
+            <p id="interview">0</p>
+        </div>
+
+        <div class="card">
+            <h2>Selected</h2>
+            <p id="selected">0</p>
+        </div>
+
+        <div class="card">
+            <h2>Rejected</h2>
+            <p id="rejected">0</p>
+        </div>
+    </div>
+
+    <br>
+    <a class="btn" href="/jobs">View Jobs</a>
+    <a class="btn btn-success" href="/add-job">Add Job</a>
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+const API_KEY = "myjobtrackerapikey123";
+
+if (!token) {
+    window.location.href = "/login";
+}
+
+async function loadSummary() {
+    const response = await fetch("/api/jobs/summary", {
+        method: "GET",
+        headers: {
+            "Authorization": "Bearer " + token,
+            "x-api-key": API_KEY
+        }
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+        document.getElementById("total_jobs").innerText = result.stats.total_jobs;
+        document.getElementById("applied").innerText = result.stats.applied;
+        document.getElementById("interview").innerText = result.stats.interview;
+        document.getElementById("selected").innerText = result.stats.selected;
+        document.getElementById("rejected").innerText = result.stats.rejected;
+    } else {
+        alert(result.message);
+    }
+}
+
+function logout() {
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+}
+
+loadSummary();
+</script>
+
+</body>
+</html>
